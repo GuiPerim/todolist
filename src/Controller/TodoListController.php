@@ -73,7 +73,7 @@ class TodoListController extends AbstractController
     }
 
     /**
-     * @Route("/switch-status/{id}", name="switch_status")
+     * @Route("/switch-status/{id?}", name="switch_status")
      */
     public function switchStatus($id)
     {
@@ -81,12 +81,20 @@ class TodoListController extends AbstractController
             //Criamos o gerenciador da entidade
             $entityManager = $this->getDoctrine()->getManager();
             $task = $entityManager->getRepository(Tasks::class)->find($id);
-            $task->setStatus(!$task->getStatus());
-            $entityManager->flush();
-            $this->addFlash(
-                'success',
-                'Tarefa atualizada!'
-            );
+            if (empty($task)) {
+                $this->addFlash(
+                    'warning',
+                    'Nenhuma tarefa encontrada. Selecione uma tarefa válida!'
+                );
+            }
+            else {
+                $task->setStatus(!$task->getStatus());
+                $entityManager->flush();
+                $this->addFlash(
+                    'success',
+                    'Tarefa atualizada!'
+                );
+            }
         }
         catch(DBALException $e){
             $this->addFlash(
@@ -105,10 +113,50 @@ class TodoListController extends AbstractController
     }
 
     /**
-     * @Route("/delete/{id}", name="delete")
+     * @Route("/delete/{id?}", name="delete")
      */
     public function delete($id)
     {
-        exit('to do: delete the task'.$id);
+        try {
+            if (empty($id)) {
+                $this->addFlash(
+                    'warning',
+                    'Selecione uma tarefa para deletar!'
+                );
+            }
+            else {
+                $entityManager = $this->getDoctrine()->getManager();
+                $task = $entityManager->getRepository(Tasks::class)->find($id);
+                if (empty($task)) {
+                    $this->addFlash(
+                        'warning',
+                        'Nenhuma tarefa encontrada. Selecione uma tarefa válida!'
+                    );
+                }
+                else {
+                    $entityManager->remove($task);
+                    $entityManager->flush();
+                    $this->addFlash(
+                        'success',
+                        'Tarefa removida!'
+                    );
+                }
+            }
+        }
+        catch(DBALException $e){
+            $this->addFlash(
+                'error',
+                $e->getMessage()
+            );
+        }
+        catch(\Exception $e){
+            $this->addFlash(
+                'error',
+                $e->getMessage()
+            );
+        }
+
+        return $this->redirectToRoute('todo_list');
+
     }
 }
